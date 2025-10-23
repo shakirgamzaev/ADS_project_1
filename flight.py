@@ -25,3 +25,5 @@ class Flight:
         self.state: FlightState = FlightState.PENDING
         self.pairing_heap_node = None # stores the reference to a flight in the max pairing heap node.
         
+        
+        

@@ -1,11 +1,16 @@
 from minHeap import MinHeap
 from maxPairingHeap import MaxPairingHeap
 
+#Central piece of the entire program. This class has all of the 6 data structures required for the project, as well as all of the function implementations to make the program run
+
 class FlightScheduler:
     def __init__(self):
         self.current_time = 0 # system time that a flight scheduler keeps track of
-        self.pending_flights = None # a max pairing heap of 
+        self.pending_flights = None # a max pairing heap of pending flights
         self.runway_pool: MinHeap = None # a pool of availble runways, initilazed at program start
+        self.active_flights = {} # hash table that stores all flights that are in ACTIVE state, with key being flightID
+        
+        
         
     def initialize(self, count_runways):
         if count_runways <= 0:
