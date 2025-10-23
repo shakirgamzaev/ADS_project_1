@@ -57,8 +57,8 @@ class MinHeap:
     
     
     def bubble_down(self, index: int) -> None:
-        left_index = (index * 2) + 1
-        right_index = (index * 2) + 2
+        left_index = (index * 2) + 1 #index of left child
+        right_index = (index * 2) + 2 # index of right child
         smallest = index #keeps track whether index changed to either of its children
         
         if left_index < len(self.nodes) and self.nodes[left_index].key < self.nodes[smallest].key:
