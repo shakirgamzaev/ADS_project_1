@@ -78,7 +78,7 @@ class FlightScheduler:
             flight.pairing_heap_node = None
         
         #Step 3: Rebuild runway pool
-        occupied_runways: dict[int, int] = {} # key: runway_id -> value: nextFreeTime
+        occupied_runways: dict[int, int] = {} # (key: runway_id) : (value: nextFreeTime)
         for flight_id, flight in self.active_flights.items():
             if flight.state == FlightState.IN_PROGRESS:
                 occupied_runways[flight.runway_id] = flight.eta
@@ -100,7 +100,21 @@ class FlightScheduler:
         
         #replace old runway pool with a new one
         self.runway_pool = fresh_runway_pool
+        
+        fresh_pending_queue = MaxPairingHeap()
+        
+        for flight in unsatisifed_flights:
+            #Add to fresh_pending_queue
+            key = (flight.priority, -flight.submit_time, -flight.flight_id)
+            max_pairing_node = fresh_pending_queue.push(key= key, payload= flight)
             
+            flight.pairing_heap_node = max_pairing_node
+            if flight.flight_id not in self.handles:
+                self.handles[flight.flight_id] = {}
+            self.handles[flight.flight_id]["state"] = FlightState.PENDING
+            self.handles[flight.flight_id]["pairingNode"] = max_pairing_node
+        
+        self.pending_flights = fresh_pending_queue
       
       
      
@@ -123,7 +137,6 @@ class FlightScheduler:
         print(f"{count_runways} Runways are now available")
         
     
-
 
 
 

@@ -1,5 +1,6 @@
 #class that represents a flight request object
 from enum import Enum
+from maxPairingHeap import MaxPairingHeap
 
 class FlightState(Enum):
     PENDING = "PENDING"
@@ -23,7 +24,7 @@ class Flight:
         self.eta = -1
         
         self.state: FlightState = FlightState.PENDING
-        self.pairing_heap_node = None # stores the reference to a flight in the max pairing heap node.
+        self.pairing_heap_node: MaxPairingHeap.Node = None # stores the reference to a flight in the max pairing heap node.
         
         
         
