@@ -8,7 +8,7 @@ class FlightScheduler:
         self.current_time = 0 # system time that a flight scheduler keeps track of
         self.pending_flights = MaxPairingHeap() # a max pairing heap queue of flights that are in PENDING state
         self.runway_pool: MinHeap = MinHeap() # a pool of availble runways, initilazed at program start
-        self.active_flights: dict[int, Flight] = {} # hash table that stores all flights that are either in IN_PROGRESS or in SCHEDULED states
+        self.active_flights: dict[int, Flight] = {} # hash table that stores all flights
         self.timetable: MinHeap = MinHeap() # min heap of scheduled flights
         self.airline_index: dict[int, set[int]] = {}
         self.handles = {} 
@@ -56,8 +56,54 @@ class FlightScheduler:
                     self.handles[flight_id]["state"] = FlightState.IN_PROGRESS    
             
             
+    def reschedule_unsatisfied_flights(self, new_current_time: int):
+        unsatisifed_flights: list[Flight] = []
+        
+        for flight_id, flight in self.active_flights.items():
+            if flight.state == FlightState.PENDING:
+                unsatisifed_flights.append(flight)
+            elif flight.state == FlightState.SCHEDULED and new_current_time < flight.start_time:
+                unsatisifed_flights.append(flight)   
 
-       
+        old_etas: dict[int, int] = {} #use this dict to store old ETA for each flight, what will be required for comparing if some ETAs changed
+        
+        for flight in unsatisifed_flights:
+            if flight.eta != -1: #-1 means that the flight was never scheduled
+                old_etas[flight.flight_id] = flight.eta
+            # clear all previous assignments
+            flight.runway_id = -1
+            flight.start_time = -1
+            flight.eta = -1
+            flight.state = FlightState.PENDING
+            flight.pairing_heap_node = None
+        
+        #Step 3: Rebuild runway pool
+        occupied_runways: dict[int, int] = {} # key: runway_id -> value: nextFreeTime
+        for flight_id, flight in self.active_flights.items():
+            if flight.state == FlightState.IN_PROGRESS:
+                occupied_runways[flight.runway_id] = flight.eta
+        
+        fresh_runway_pool = MinHeap()
+        
+        #iterate through all current runway pools
+        for node in self.runway_pool.nodes:
+            runway_id = node.payload["runwayID"]
+            next_free_time = -1
+            if runway_id in occupied_runways:
+                next_free_time = occupied_runways[runway_id]
+            else:
+                next_free_time = new_current_time
+            
+            new_runway_node = MinHeap.Node(key= (next_free_time, runway_id),
+                                           payload= {"runwayID": runway_id, "nextFreeTime": next_free_time})
+            fresh_runway_pool.insert_node(new_runway_node)
+        
+        #replace old runway pool with a new one
+        self.runway_pool = fresh_runway_pool
+            
+      
+      
+     
     def initialize(self, count_runways: int):
         if count_runways <= 0:
             print("Invalid input.")
