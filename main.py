@@ -12,7 +12,20 @@ class FlightScheduler:
         self.timetable: MinHeap = MinHeap() # min heap of scheduled flights
         self.airline_index: dict[int, set[int]] = {}
         self.handles = {} 
-       
+        
+    # helper function to print flights that had updated ETAs 
+    #(flight_id, flight.eta)
+    def print_updated_etas(self, updated_flights: list[tuple[int, int]]):
+        final_text = "Updated ETAs: ["
+        for i in range(len(updated_flights)):
+            flight_id, eta = updated_flights[i]
+            string = f"{flight_id}: {eta}"
+            if i != len(updated_flights) - 1:
+                string += ", "
+            final_text += string
+        final_text += "]"
+        print(final_text)
+    
     
     def settle_completions(self, current_time: int):
         #collect all flights that should complete
@@ -45,29 +58,29 @@ class FlightScheduler:
             #delete flight from handles 
             if flight_id in self.handles:
                 del self.handles[flight_id]
-            #print the flight has landed
             
-        
         #Promotion step
         for flight_id, flight in list(self.active_flights.items()):
             if flight.state == FlightState.SCHEDULED and flight.start_time <= current_time:
                 flight.state = FlightState.IN_PROGRESS
                 if flight_id in self.handles:
                     self.handles[flight_id]["state"] = FlightState.IN_PROGRESS    
+          
+          
             
             
     def reschedule_unsatisfied_flights(self, new_current_time: int):
-        unsatisifed_flights: list[Flight] = []
+        unsatisfied_flights: list[Flight] = []
         
         for flight_id, flight in self.active_flights.items():
             if flight.state == FlightState.PENDING:
-                unsatisifed_flights.append(flight)
+                unsatisfied_flights.append(flight)
             elif flight.state == FlightState.SCHEDULED and new_current_time < flight.start_time:
-                unsatisifed_flights.append(flight)   
+                unsatisfied_flights.append(flight)   
 
         old_etas: dict[int, int] = {} #use this dict to store old ETA for each flight, what will be required for comparing if some ETAs changed
         
-        for flight in unsatisifed_flights:
+        for flight in unsatisfied_flights:
             if flight.eta != -1: #-1 means that the flight was never scheduled
                 old_etas[flight.flight_id] = flight.eta
             # clear all previous assignments
@@ -103,7 +116,8 @@ class FlightScheduler:
         
         fresh_pending_queue = MaxPairingHeap()
         
-        for flight in unsatisifed_flights:
+        #step 4, rebuild a pending queue of flights.
+        for flight in unsatisfied_flights:
             #Add to fresh_pending_queue
             key = (flight.priority, -flight.submit_time, -flight.flight_id)
             max_pairing_node = fresh_pending_queue.push(key= key, payload= flight)
@@ -115,6 +129,57 @@ class FlightScheduler:
             self.handles[flight.flight_id]["pairingNode"] = max_pairing_node
         
         self.pending_flights = fresh_pending_queue
+
+        #step 5: greedy scheduling
+        #loop while the pendling_flights queue is not empty
+        while self.pending_flights.node_count > 0:
+            flight_node = self.pending_flights.pop()
+            flight: Flight = flight_node.payload
+            
+            #Choose runway with earlierst nextFreeTime
+            runway_node: MinHeap.Node = self.runway_pool.remove_min()
+            runway_id = runway_node.payload["runwayID"]
+            runway_next_free_time = runway_node.payload["nextFreeTime"]
+            
+            #assign times
+            start_time = max(new_current_time, runway_next_free_time)
+            eta = start_time + flight.duration
+            
+            flight.runway_id = runway_id
+            flight.start_time = start_time
+            flight.eta = eta
+            flight.state = FlightState.SCHEDULED
+            flight.pairing_heap_node = None
+            
+            #Update handles
+            if flight.flight_id in self.handles:
+                self.handles[flight.flight_id]["state"] = FlightState.SCHEDULED
+                self.handles[flight.flight_id]["pairingNode"] = None
+            
+            runway_node.payload["nextFreeTime"] = eta
+            runway_node.key = (eta, runway_id)
+            self.runway_pool.insert_node(runway_node)
+            
+            #add to timetable queue
+            timetable_node = MinHeap.Node(key= (eta, flight.flight_id), payload={"runwayID": runway_id})
+            
+            self.timetable.insert_node(timetable_node)
+         
+           
+        #step 6: print flights with ETAs that changed 
+        updated_flights = []
+            
+        for flight_id, old_eta in old_etas.items():
+            flight = self.active_flights[flight_id]
+            if flight.eta != old_eta:
+                updated_flights.append((flight_id, flight.eta))
+                
+        if len(updated_flights) > 0:
+                updated_flights.sort()
+                self.print_updated_etas(updated_flights)
+            
+            
+                
       
       
      
