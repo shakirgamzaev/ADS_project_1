@@ -1,6 +1,6 @@
 #class that represents a flight request object
 from enum import Enum
-from maxPairingHeap import MaxPairingHeap
+from MaxPairingHeap import MaxPairingHeap
 
 class FlightState(Enum):
     PENDING = "PENDING"

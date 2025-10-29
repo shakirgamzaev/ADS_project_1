@@ -1,6 +1,8 @@
-from minHeap import MinHeap
-from maxPairingHeap import MaxPairingHeap
-from flight import Flight, FlightState
+from MinHeap import MinHeap
+from MaxPairingHeap import MaxPairingHeap
+from Flight import Flight, FlightState
+from FlightHelpers import FlightHelpers
+
 #Central piece of the entire program. This class has all of the 6 data structures required for the project, as well as all of the function implementations to make the program run
 
 class FlightScheduler:
@@ -67,28 +69,18 @@ class FlightScheduler:
                     self.handles[flight_id]["state"] = FlightState.IN_PROGRESS    
           
           
-            
+    
+    
+         
             
     def reschedule_unsatisfied_flights(self, new_current_time: int):
-        unsatisfied_flights: list[Flight] = []
         
-        for flight_id, flight in self.active_flights.items():
-            if flight.state == FlightState.PENDING:
-                unsatisfied_flights.append(flight)
-            elif flight.state == FlightState.SCHEDULED and new_current_time < flight.start_time:
-                unsatisfied_flights.append(flight)   
+        #collect unsatisifed flights
+        unsatisfied_flights: list[Flight] = FlightHelpers.collect_unsatisfied_flights(new_current_time, self.active_flights)
 
-        old_etas: dict[int, int] = {} #use this dict to store old ETA for each flight, what will be required for comparing if some ETAs changed
+        #use this dict to store old ETA for each flight, what will be required for comparing if some ETAs changed
+        old_etas: dict[int, int] = FlightHelpers.store_old_etas(unsatisfied_flights)
         
-        for flight in unsatisfied_flights:
-            if flight.eta != -1: #-1 means that the flight was never scheduled
-                old_etas[flight.flight_id] = flight.eta
-            # clear all previous assignments
-            flight.runway_id = -1
-            flight.start_time = -1
-            flight.eta = -1
-            flight.state = FlightState.PENDING
-            flight.pairing_heap_node = None
         
         #Step 3: Rebuild runway pool
         occupied_runways: dict[int, int] = {} # (key: runway_id) : (value: nextFreeTime)
@@ -96,74 +88,19 @@ class FlightScheduler:
             if flight.state == FlightState.IN_PROGRESS:
                 occupied_runways[flight.runway_id] = flight.eta
         
-        fresh_runway_pool = MinHeap()
-        
-        #iterate through all current runway pools
-        for node in self.runway_pool.nodes:
-            runway_id = node.payload["runwayID"]
-            next_free_time = -1
-            if runway_id in occupied_runways:
-                next_free_time = occupied_runways[runway_id]
-            else:
-                next_free_time = new_current_time
-            
-            new_runway_node = MinHeap.Node(key= (next_free_time, runway_id),
-                                           payload= {"runwayID": runway_id, "nextFreeTime": next_free_time})
-            fresh_runway_pool.insert_node(new_runway_node)
+        fresh_runway_pool = FlightHelpers.rebuild_runway_pool(self.runway_pool, occupied_runways, new_current_time)
         
         #replace old runway pool with a new one
         self.runway_pool = fresh_runway_pool
         
-        fresh_pending_queue = MaxPairingHeap()
-        
-        #step 4, rebuild a pending queue of flights.
-        for flight in unsatisfied_flights:
-            #Add to fresh_pending_queue
-            key = (flight.priority, -flight.submit_time, -flight.flight_id)
-            max_pairing_node = fresh_pending_queue.push(key= key, payload= flight)
-            
-            flight.pairing_heap_node = max_pairing_node
-            if flight.flight_id not in self.handles:
-                self.handles[flight.flight_id] = {}
-            self.handles[flight.flight_id]["state"] = FlightState.PENDING
-            self.handles[flight.flight_id]["pairingNode"] = max_pairing_node
+        #step 4: rebuild a pending queues flight 
+        fresh_pending_queue = FlightHelpers.rebuild_pending_queue_flights(unsatisfied_flights, self.handles)
         
         self.pending_flights = fresh_pending_queue
 
         #step 5: greedy scheduling
         #loop while the pendling_flights queue is not empty
-        while self.pending_flights.node_count > 0:
-            flight_node = self.pending_flights.pop()
-            flight: Flight = flight_node.payload
-            
-            #Choose runway with earlierst nextFreeTime
-            runway_node: MinHeap.Node = self.runway_pool.remove_min()
-            runway_id = runway_node.payload["runwayID"]
-            runway_next_free_time = runway_node.payload["nextFreeTime"]
-            
-            #assign times
-            start_time = max(new_current_time, runway_next_free_time)
-            eta = start_time + flight.duration
-            
-            flight.runway_id = runway_id
-            flight.start_time = start_time
-            flight.eta = eta
-            flight.state = FlightState.SCHEDULED
-            flight.pairing_heap_node = None
-            
-            #Update handles
-            if flight.flight_id in self.handles:
-                self.handles[flight.flight_id]["state"] = FlightState.SCHEDULED
-                self.handles[flight.flight_id]["pairingNode"] = None
-            
-            runway_node.payload["nextFreeTime"] = eta
-            runway_node.key = (eta, runway_id)
-            self.runway_pool.insert_node(runway_node)
-            
-            #add to timetable queue
-            timetable_node = MinHeap.Node(key= (eta, flight.flight_id), payload={"runwayID": runway_id})
-            
-            self.timetable.insert_node(timetable_node)
+        FlightHelpers.greedy_schedule_flights(self.pending_flights, self.runway_pool, new_current_time, self.timetable, self.handles)
          
            
         #step 6: print flights with ETAs that changed 
@@ -202,6 +139,49 @@ class FlightScheduler:
         print(f"{count_runways} Runways are now available")
         
     
+    def submit_flight(self, flight_id: int, airline_id: int, submit_time: int, priority: int, duration: int):
+        # Step 1: Advance time and settle any completions and reschedule
+        self.settle_completions(submit_time)
+        self.reschedule_unsatisfied_flights(submit_time)
+        
+        # Step 2: Check for duplicate flight_id
+        if flight_id in self.active_flights:
+            print("Duplicate FlightID")
+            return
+        
+        # Step 3: Create new Flight object
+        new_flight = Flight(flight_id, airline_id, submit_time, priority, duration)
+        
+        # Step 4: Add to active_flights (master registry)
+        self.active_flights[flight_id] = new_flight
+        
+        # Step 5: Add to airline_index
+        if airline_id not in self.airline_index:
+            self.airline_index[airline_id] = set()
+        self.airline_index[airline_id].add(flight_id)
+        
+        # Step 6: Add to pending_flights (MaxPairingHeap)
+        key = (priority, -submit_time, -flight_id)
+        pairing_node = self.pending_flights.push(key=key, payload=new_flight)
+        new_flight.pairing_heap_node = pairing_node
+        
+        # Step 7: Add to handles
+        self.handles[flight_id] = {
+            "state": FlightState.PENDING,
+            "pairingNode": pairing_node
+        }
+        
+        # Step 8: Update current_time and reschedule to try to assign the new flight
+        self.current_time = submit_time
+        self.reschedule_unsatisfied_flights(submit_time)
+        
+        # Step 9: Print the result
+        flight = self.active_flights[flight_id]
+        if flight.eta != -1:
+            print(f"Flight {flight_id} scheduled - ETA: {flight.eta}")
+        else:
+            # In case flight was not scheduled, safety precaution
+            print(f"Flight {flight_id} is pending")
 
 
 
@@ -210,6 +190,12 @@ class FlightScheduler:
 if __name__ == "__main__":
     flight_scheduler = FlightScheduler() # initialize global flight scheduler class that keeps track of all the data needed
     flight_scheduler.initialize(3)
+    flight_scheduler.submit_flight(501, 20, 0, 8, 4)
+    flight_scheduler.submit_flight(502, 21, 0, 7, 6)
+    flight_scheduler.submit_flight(503, 22, 0, 7, 5)
+    flight_scheduler.submit_flight(510, 23, 0, 9, 3)
+    flight_scheduler.submit_flight(511, 23, 0, 9, 3)
+    flight_scheduler.submit_flight(504, 24, 0, 6, 4)
     
     
         
