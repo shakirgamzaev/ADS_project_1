@@ -54,6 +54,7 @@ class FlightHelpers:
         fresh_runway_pool = MinHeap()
         
         #iterate through all current runway pools
+        #and assign next_free_time to current_time only to runways that are not in occupied runways, or in other words free
         for node in runway_pool.nodes:
             runway_id = node.payload["runwayID"]
             next_free_time = -1

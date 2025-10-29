@@ -70,7 +70,6 @@ class FlightScheduler:
           
           
     
-    
          
             
     def reschedule_unsatisfied_flights(self, new_current_time: int):
@@ -117,8 +116,6 @@ class FlightScheduler:
             
             
                 
-      
-      
      
     def initialize(self, count_runways: int):
         if count_runways <= 0:
@@ -137,7 +134,8 @@ class FlightScheduler:
             new_runway = MinHeap.Node(key=(0, i), payload={"runwayID": i, "nextFreeTime" : 0}) # key structure: (nextFreeTime, runwayID)
             self.runway_pool.insert_node(new_runway)
         print(f"{count_runways} Runways are now available")
-        
+     
+   
     
     def submit_flight(self, flight_id: int, airline_id: int, submit_time: int, priority: int, duration: int):
         # Step 1: Advance time and settle any completions and reschedule
