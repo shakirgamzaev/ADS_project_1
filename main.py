@@ -46,6 +46,9 @@ class FlightScheduler:
             
         #after flights have been collected in completed_flights, remove them from all data structures
         for eta, flight_id in completed_flights:
+            if flight_id not in self.active_flights:
+                continue #skip if already removed
+            
             print(f"Flight {flight_id} has landed at time {eta}")
             flight = self.active_flights[flight_id] #get the flight from active_flights dict
             #first delete the flight from active_flights 
@@ -72,7 +75,7 @@ class FlightScheduler:
     
          
             
-    def reschedule_unsatisfied_flights(self, new_current_time: int):
+    def reschedule_unsatisfied_flights(self, new_current_time: int, print_updates: bool = True):
         
         #collect unsatisifed flights
         unsatisfied_flights: list[Flight] = FlightHelpers.collect_unsatisfied_flights(new_current_time, self.active_flights)
@@ -102,15 +105,15 @@ class FlightScheduler:
         FlightHelpers.greedy_schedule_flights(self.pending_flights, self.runway_pool, new_current_time, self.timetable, self.handles)
          
            
-        #step 6: print flights with ETAs that changed 
-        updated_flights = []
-            
-        for flight_id, old_eta in old_etas.items():
-            flight = self.active_flights[flight_id]
-            if flight.eta != old_eta:
-                updated_flights.append((flight_id, flight.eta))
+        #step 6: print flights with ETAs that changed, if print flag is true
+        if print_updates is True:
+            updated_flights = []
+            for flight_id, old_eta in old_etas.items():
+                flight = self.active_flights[flight_id]
+                if flight.eta != old_eta:
+                     updated_flights.append((flight_id, flight.eta))
                 
-        if len(updated_flights) > 0:
+            if len(updated_flights) > 0:
                 updated_flights.sort()
                 self.print_updated_etas(updated_flights)
             
@@ -182,6 +185,48 @@ class FlightScheduler:
             print(f"Flight {flight_id} is pending")
 
 
+    #TODO: might need to delete airline later at step 5
+    def cancel_flight(self, flight_id: int, new_current_time: int):
+        self.settle_completions(new_current_time)
+        self.reschedule_unsatisfied_flights(new_current_time, print_updates=False)
+        self.current_time = new_current_time
+        
+        #if a flight does not exist in the system, print that it does not exist
+        if flight_id not in self.active_flights:
+            print(f"Flight {flight_id} does not exist")
+            return
+         
+        flight = self.active_flights[flight_id] 
+        
+        if flight.state == FlightState.IN_PROGRESS or flight.state == FlightState.LANDED:
+            print(f"Cannot cancel: Flight {flight_id} has already departed")
+            return
+        
+        #TODO: remove in final code , defensive check 
+        if flight.state == FlightState.SCHEDULED and flight.start_time <= new_current_time:
+            print(f"Cannot cancel. Flight {flight_id} already departed")
+            return
+        
+        #remove from pending max pairing heap
+        if flight.state == FlightState.PENDING and flight.pairing_heap_node is not None:
+            self.pending_flights.erase(flight.pairing_heap_node)
+        
+        #remove from active flights
+        del self.active_flights[flight_id]
+        
+        airline_id = flight.airline_id
+        if airline_id in self.airline_index:
+            self.airline_index[airline_id].discard(flight_id)
+
+        #remove from handles
+        if flight_id in self.handles:
+            del self.handles[flight_id]
+            
+        print(f"Flight {flight_id} has been canceled")
+        
+        self.reschedule_unsatisfied_flights(new_current_time)
+
+        
 
 
 #main program entry point
@@ -194,6 +239,6 @@ if __name__ == "__main__":
     flight_scheduler.submit_flight(510, 23, 0, 9, 3)
     flight_scheduler.submit_flight(511, 23, 0, 9, 3)
     flight_scheduler.submit_flight(504, 24, 0, 6, 4)
-    
+    flight_scheduler.cancel_flight(505,7)
     
         
