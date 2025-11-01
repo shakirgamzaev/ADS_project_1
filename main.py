@@ -226,19 +226,42 @@ class FlightScheduler:
         
         self.reschedule_unsatisfied_flights(new_current_time)
 
+    
+    
+    def reprioritize_flight(self, flight_id: int, 
+                            new_current_time: int, 
+                            new_priority: int):
+        self.settle_completions(new_current_time)
+        self.reschedule_unsatisfied_flights(new_current_time, print_updates=False)
+        self.current_time = new_current_time
         
+        if flight_id not in self.active_flights:
+            print(f"Flight {flight_id} does not exist")
+            return
+        
+        flight = self.active_flights[flight_id]
+        
+        if flight.state == FlightState.IN_PROGRESS or flight.state == FlightState.LANDED:
+            print(f"Cannot reprioritize: Flight {flight_id} has already departed.")
+            return
+        
+        #step 3, change priority of flight
+        FlightHelpers.change_priority_of_flight(handles=self.handles, pending_flights=self.pending_flights, flight=flight, new_priority=new_priority)
+        
+        #step 4: print confirmation and reschedule
+        print(f"Priority of Flight {flight_id} has been updated to {new_priority}")
+        self.reschedule_unsatisfied_flights(new_current_time, print_updates=True)
+     
 
 
 #main program entry point
 if __name__ == "__main__":
     flight_scheduler = FlightScheduler() # initialize global flight scheduler class that keeps track of all the data needed
-    flight_scheduler.initialize(3)
-    flight_scheduler.submit_flight(501, 20, 0, 8, 4)
-    flight_scheduler.submit_flight(502, 21, 0, 7, 6)
-    flight_scheduler.submit_flight(503, 22, 0, 7, 5)
-    flight_scheduler.submit_flight(510, 23, 0, 9, 3)
-    flight_scheduler.submit_flight(511, 23, 0, 9, 3)
-    flight_scheduler.submit_flight(504, 24, 0, 6, 4)
-    flight_scheduler.cancel_flight(505,7)
+    flight_scheduler.initialize(2)
+    flight_scheduler.submit_flight(401, 10, 0, 7, 4)
+    flight_scheduler.submit_flight(404, 11, 0, priority=5, duration=2)
+    flight_scheduler.submit_flight(402, 11, 0, priority=6, duration=3)
+    flight_scheduler.submit_flight(403, 11, 0, priority=5, duration=5)
+    flight_scheduler.reprioritize_flight(403, new_current_time=0, new_priority=10)
     
         

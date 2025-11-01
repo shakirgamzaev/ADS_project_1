@@ -121,3 +121,30 @@ class FlightHelpers:
             timetable_node = MinHeap.Node(key= (eta, flight.flight_id), payload={"runwayID": runway_id})
             
             timetable.insert_node(timetable_node)
+     
+    @staticmethod       
+    def change_priority_of_flight(
+        handles: dict,
+        pending_flights: MaxPairingHeap,
+        flight: Flight, 
+        new_priority: int):
+        
+        old_priority = flight.priority
+        
+        if flight.state == FlightState.PENDING and flight.pairing_heap_node is not None:
+            if new_priority > old_priority:
+                #use increase key operation of max paring heap
+                new_key = (new_priority, -flight.submit_time, -flight.flight_id)
+                pending_flights.increase_key(flight.pairing_heap_node, new_key)
+            else:
+                #priority decreased - perform erase old node and push new
+                pending_flights.erase(flight.pairing_heap_node)
+                new_key = (new_priority, -flight.submit_time, -flight.flight_id)
+                pairing_node = pending_flights.push(key=new_key, payload=flight)
+                flight.pairing_heap_node = pairing_node
+                handles[flight.flight_id]["pairingNode"] = pairing_node
+        
+        flight.priority = new_priority
+            
+                
+             
