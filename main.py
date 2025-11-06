@@ -253,6 +253,34 @@ class FlightScheduler:
         self.reschedule_unsatisfied_flights(new_current_time, print_updates=True)
      
 
+    def add_runways(self, count: int, new_current_time: int):
+        self.settle_completions(new_current_time)
+        self.reschedule_unsatisfied_flights(new_current_time, print_updates=False)
+        
+        if count <= 0:
+            print("Invalid input")
+            return
+        
+        #find the maximum current runway id, starting from which we increase number of runways in the next step
+        current_max_runway_id = 0
+        for node in self.runway_pool.nodes:
+            runway_id = node.payload["runwayID"]
+            if runway_id > current_max_runway_id:
+                current_max_runway_id = runway_id
+        
+        #step 4: create new runways with consecutive IDs
+        for i in range(1, count + 1):
+            new_runway_id = current_max_runway_id + i
+            new_runway = MinHeap.Node(key = (new_current_time, new_runway_id), payload = {"runwayID": new_runway_id, "nextFreeTime": new_current_time})
+            self.runway_pool.insert_node(new_runway)
+        
+        #print confirmation
+        print(f"Additional {count} Runways are now available")
+        
+        self.reschedule_unsatisfied_flights(new_current_time, print_updates=True)
+        
+
+
 
 #main program entry point
 if __name__ == "__main__":
