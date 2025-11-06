@@ -146,5 +146,56 @@ class FlightHelpers:
         
         flight.priority = new_priority
             
-                
-             
+          
+          
+    #Helper function that collects all flights that belong to the range of airline ids, from low to high, who are in either pending state, or in scheduled states
+    @staticmethod
+    def collect_flights_in_airlines(airline_indices: dict[int, set[int]],
+                                    active_flights: dict[int, Flight],
+                                    airline_low_id: int, 
+                                    airline_high_id: int, 
+                                    new_current_time: int):
+        
+        flights_to_ground: list[int] = [] #List of flight ids that will be grounded
+        
+        for airline_id in range(airline_low_id, airline_high_id + 1):
+            if airline_id in airline_indices:
+                #now get all flights from this airline_id in either pending or scheduled and not started state
+                for flight_id in list(airline_indices[airline_id]):
+                    if flight_id in active_flights:
+                        flight = active_flights[flight_id]
+                        
+                        if flight.state == FlightState.PENDING or (flight.state == FlightState.SCHEDULED and flight.start_time > new_current_time):
+                            flights_to_ground.append(flight_id)
+        
+        return flights_to_ground
+    
+    
+    
+    @staticmethod
+    def delete_flights(flight_ids_to_remove: list[int],
+                       active_flights: dict[int, Flight],
+                       pending_flights: MaxPairingHeap,
+                       airline_index: dict[int, set[int]],
+                       handles: dict
+                       ):
+        for flight_id in flight_ids_to_remove:
+            if flight_id not in active_flights:
+                continue
+            
+            flight = active_flights[flight_id]
+            
+            #remove from pending_flights if PENDING state
+            if flight.state == FlightState.PENDING and flight.pairing_heap_node is not None:
+                pending_flights.erase(flight.pairing_heap_node)
+            
+            #remove from active flights 
+            del active_flights[flight_id]
+            
+            airline_id = flight.airline_id
+            if airline_id in airline_index:
+                airline_index[airline_id].discard(flight_id)
+            
+            #finally remove from handles
+            if flight_id in handles:
+                del handles[flight_id]

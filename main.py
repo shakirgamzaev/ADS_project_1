@@ -256,9 +256,10 @@ class FlightScheduler:
     def add_runways(self, count: int, new_current_time: int):
         self.settle_completions(new_current_time)
         self.reschedule_unsatisfied_flights(new_current_time, print_updates=False)
+        self.current_time = new_current_time
         
         if count <= 0:
-            print("Invalid input")
+            print("Invalid input. Please provide a valid number of runways.")
             return
         
         #find the maximum current runway id, starting from which we increase number of runways in the next step
@@ -279,17 +280,39 @@ class FlightScheduler:
         
         self.reschedule_unsatisfied_flights(new_current_time, print_updates=True)
         
+    
+    
+    def ground_hold(self, airline_low: int, airline_high, new_current_time: int):
+        self.settle_completions(new_current_time)
+        self.reschedule_unsatisfied_flights(new_current_time, print_updates=False)
+        self.current_time = new_current_time
+        
+        #print invalid airline range if high id < low id
+        if airline_high < airline_low:
+            print("Invalid input. Please provide a valid airline range.")
+            return
+        
+        #collect all flight ids who belong to airlines in range: [airline_low, airline_high]
+        flight_ids_to_remove = FlightHelpers.collect_flights_in_airlines(self.airline_index, self.active_flights, airline_low, airline_high, new_current_time)
+        
+        #Remove collected flights from all data structures
+        FlightHelpers.delete_flights(flight_ids_to_remove, self.active_flights, self.pending_flights, self.airline_index, self.handles)
+        
+        print(f"Flights of the airlines in the range [{airline_low}, {airline_high}] have been grounded")
+
+        self.reschedule_unsatisfied_flights(new_current_time, print_updates=True)
 
 
 
 #main program entry point
 if __name__ == "__main__":
     flight_scheduler = FlightScheduler() # initialize global flight scheduler class that keeps track of all the data needed
-    flight_scheduler.initialize(2)
-    flight_scheduler.submit_flight(401, 10, 0, 7, 4)
-    flight_scheduler.submit_flight(404, 11, 0, priority=5, duration=2)
-    flight_scheduler.submit_flight(402, 11, 0, priority=6, duration=3)
-    flight_scheduler.submit_flight(403, 11, 0, priority=5, duration=5)
+    flight_scheduler.initialize(count_runways = 2)
+    flight_scheduler.submit_flight(flight_id = 401, airline_id = 10, submit_time = 0, priority = 7, duration = 4)
+    flight_scheduler.submit_flight(flight_id = 404, airline_id = 11, submit_time = 0, priority = 5, duration = 2)
+    flight_scheduler.submit_flight(flight_id = 402, airline_id = 11, submit_time = 0, priority=6, duration=3)
+    flight_scheduler.submit_flight(flight_id = 403, airline_id = 11, submit_time = 0, priority=5, duration=5)
     flight_scheduler.reprioritize_flight(403, new_current_time=0, new_priority=10)
+    
     
         
