@@ -308,11 +308,26 @@ class FlightScheduler:
 if __name__ == "__main__":
     flight_scheduler = FlightScheduler() # initialize global flight scheduler class that keeps track of all the data needed
     flight_scheduler.initialize(count_runways = 2)
-    flight_scheduler.submit_flight(flight_id = 401, airline_id = 10, submit_time = 0, priority = 7, duration = 4)
-    flight_scheduler.submit_flight(flight_id = 404, airline_id = 11, submit_time = 0, priority = 5, duration = 2)
-    flight_scheduler.submit_flight(flight_id = 402, airline_id = 11, submit_time = 0, priority=6, duration=3)
-    flight_scheduler.submit_flight(flight_id = 403, airline_id = 11, submit_time = 0, priority=5, duration=5)
-    flight_scheduler.reprioritize_flight(403, new_current_time=0, new_priority=10)
+    
+    flight_scheduler.submit_flight(flight_id = 401, airline_id=11, submit_time=0, priority=8, duration=4)
+    
+    flight_scheduler.submit_flight(flight_id = 402, airline_id=12, submit_time=0, priority=7, duration=5)
+    
+    flight_scheduler.submit_flight(flight_id = 403, airline_id=13, submit_time=0, priority=6, duration=3)
+    
+    flight_scheduler.submit_flight(flight_id = 404, airline_id=14, submit_time=0, priority=5, duration=4)
     
     
-        
+    
+    flight_scheduler.reprioritize_flight(flight_id=404, new_current_time=1, new_priority=10)
+
+
+    flight_scheduler.add_runways(count=1, new_current_time=1)
+    
+    flight_scheduler.submit_flight(flight_id = 405, airline_id=15, submit_time=2, priority=6, duration=2)
+    
+    flight_scheduler.submit_flight(flight_id = 406, airline_id=16, submit_time=3, priority=7, duration=5)
+    
+    flight_scheduler.ground_hold(airline_low=16, airline_high=16, new_current_time=3)
+    
+    flight_scheduler.cancel_flight(flight_id=405, new_current_time=3)

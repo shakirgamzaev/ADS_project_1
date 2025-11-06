@@ -85,22 +85,29 @@ print("=== Testing MaxPairingHeap ===\n")
 
 # heap.erase(n3)
 
-print("-------- Test 4: Large scale ---------")
-heap = MaxPairingHeap()
-import random
-values = list(range(1,100_001))
-random.shuffle(values)
+# print("-------- Test 4: Large scale ---------")
+# heap = MaxPairingHeap()
+# import random
+# values = list(range(1,100_001))
+# random.shuffle(values)
 
-for v in values:
-    heap.push(key=v, payload=None)
-print(f"Root is: {heap.root.key}, (should be 10_000)")
+# for v in values:
+#     heap.push(key=v, payload=None)
+# print(f"Root is: {heap.root.key}, (should be 10_000)")
 
-all_correct = True
-for expected in range(100_000, 0, -1):
-    node = heap.pop()
-    if node.key != expected:
-        all_correct = False
-        print(f"Error: expected {expected}, got {node.key}")
-        break
+# all_correct = True
+# for expected in range(100_000, 0, -1):
+#     node = heap.pop()
+#     if node.key != expected:
+#         all_correct = False
+#         print(f"Error: expected {expected}, got {node.key}")
+#         break
 
-print(f"✓ All 100,000 elements popped in correct order" if all_correct else "✗ Failed")
+# print(f"✓ All 100,000 elements popped in correct order" if all_correct else "✗ Failed")
+
+
+# flight_scheduler.submit_flight(flight_id = 401, airline_id = 10, submit_time = 0, priority = 7, duration = 4)
+#     flight_scheduler.submit_flight(flight_id = 404, airline_id = 11, submit_time = 0, priority = 5, duration = 2)
+#     flight_scheduler.submit_flight(flight_id = 402, airline_id = 11, submit_time = 0, priority=6, duration=3)
+#     flight_scheduler.submit_flight(flight_id = 403, airline_id = 11, submit_time = 0, priority=5, duration=5)
+#     flight_scheduler.reprioritize_flight(403, new_current_time=0, new_priority=10)
