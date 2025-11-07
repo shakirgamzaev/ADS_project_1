@@ -303,6 +303,50 @@ class FlightScheduler:
         self.reschedule_unsatisfied_flights(new_current_time, print_updates=True)
 
 
+    
+    def print_active(self):
+        #if no flights, just print no active flights
+        if len(self.active_flights) == 0:
+            print("No active flights")
+            return
+            
+        flights: list[tuple[int, Flight]] = []
+        
+        for flight_id, flight in self.active_flights.items():
+            flights.append((flight_id, flight))
+            
+        #sort by flight_ids
+        flights.sort(key= lambda item: item[0])
+        
+        #Print each flight
+        for flight_id, flight in flights:
+            runway_id = flight.runway_id
+            eta = flight.eta
+            start_time = flight.start_time
+            print(f"[flight{flight_id}, airline{flight.airline_id}, runway{runway_id}, start{start_time}, ETA{eta}]")
+            
+
+
+    def print_schedule(self, eta_low: int, eta_high: int):
+        #list that stores all flights with state == SCHEDULED
+        scheduled_flights: list[tuple[int, int]] = []
+        
+        #collect only the flights that have 
+        for flight_id, flight in self.active_flights.items():
+            flight_eta = flight.eta
+            if (flight.state == FlightState.SCHEDULED 
+                and flight.start_time > self.current_time 
+                and (flight_eta >= eta_low and flight_eta <= eta_high)):
+                scheduled_flights.append((flight_eta, flight_id))
+        
+        #if no scheduled flights, just print the statement and exit
+        if len(scheduled_flights) == 0:
+            print("There are no flights in that time period")
+            return
+
+        scheduled_flights.sort()
+        for eta, flight_id in scheduled_flights:
+            print(f"[{flight_id}]")
 
 #main program entry point
 if __name__ == "__main__":
