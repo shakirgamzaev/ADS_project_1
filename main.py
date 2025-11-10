@@ -2,6 +2,8 @@ from MinHeap import MinHeap
 from MaxPairingHeap import MaxPairingHeap
 from Flight import Flight, FlightState
 from FlightHelpers import FlightHelpers
+from command_parser import parse_command, execute_command
+import sys
 
 #Central piece of the entire program. This class has all of the 6 data structures required for the project, as well as all of the function implementations to make the program run
 
@@ -282,7 +284,7 @@ class FlightScheduler:
         
     
     
-    def ground_hold(self, airline_low: int, airline_high, new_current_time: int):
+    def ground_hold(self, airline_low: int, airline_high: int, new_current_time: int):
         self.settle_completions(new_current_time)
         self.reschedule_unsatisfied_flights(new_current_time, print_updates=False)
         self.current_time = new_current_time
@@ -348,30 +350,39 @@ class FlightScheduler:
         for eta, flight_id in scheduled_flights:
             print(f"[{flight_id}]")
 
+
+
+    
+    def tick(self, new_time: int):
+        self.settle_completions(new_time)
+        self.reschedule_unsatisfied_flights(new_time, print_updates=True)
+        self.current_time = new_time
+
+
+    
+    
+
 #main program entry point
 if __name__ == "__main__":
     flight_scheduler = FlightScheduler() # initialize global flight scheduler class that keeps track of all the data needed
-    flight_scheduler.initialize(count_runways = 2)
     
-    flight_scheduler.submit_flight(flight_id = 401, airline_id=11, submit_time=0, priority=8, duration=4)
+    input_filename = sys.argv[1]
+    input_file_separated = input_filename.split(".")
     
-    flight_scheduler.submit_flight(flight_id = 402, airline_id=12, submit_time=0, priority=7, duration=5)
+    output_file_part1 = input_file_separated[0]
+    output_filename = f"{output_file_part1}_output_file.txt"
     
-    flight_scheduler.submit_flight(flight_id = 403, airline_id=13, submit_time=0, priority=6, duration=3)
+    original_stdout = sys.stdout
     
-    flight_scheduler.submit_flight(flight_id = 404, airline_id=14, submit_time=0, priority=5, duration=4)
+    with open(output_filename, "w") as output_file:
+        sys.stdout = output_file
+        
+        #Read and process commands from input file
+        with open(input_filename, "r") as input_file:
+            for line in input_file:
+                command_name, parameters = parse_command(line)
+                should_quit = execute_command(flight_scheduler, command_name, parameters)
+                if should_quit:
+                    break
     
-    
-    
-    flight_scheduler.reprioritize_flight(flight_id=404, new_current_time=1, new_priority=10)
-
-
-    flight_scheduler.add_runways(count=1, new_current_time=1)
-    
-    flight_scheduler.submit_flight(flight_id = 405, airline_id=15, submit_time=2, priority=6, duration=2)
-    
-    flight_scheduler.submit_flight(flight_id = 406, airline_id=16, submit_time=3, priority=7, duration=5)
-    
-    flight_scheduler.ground_hold(airline_low=16, airline_high=16, new_current_time=3)
-    
-    flight_scheduler.cancel_flight(flight_id=405, new_current_time=3)
+    sys.stdout = original_stdout

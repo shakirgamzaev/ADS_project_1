@@ -111,3 +111,46 @@ print("=== Testing MaxPairingHeap ===\n")
 #     flight_scheduler.submit_flight(flight_id = 402, airline_id = 11, submit_time = 0, priority=6, duration=3)
 #     flight_scheduler.submit_flight(flight_id = 403, airline_id = 11, submit_time = 0, priority=5, duration=5)
 #     flight_scheduler.reprioritize_flight(403, new_current_time=0, new_priority=10)
+
+
+# flight_scheduler.initialize(count_runways = 2)
+    
+#     flight_scheduler.submit_flight(flight_id = 401, airline_id=11, submit_time=0, priority=8, duration=4)
+    
+#     flight_scheduler.submit_flight(flight_id = 402, airline_id=12, submit_time=0, priority=7, duration=5)
+    
+#     flight_scheduler.submit_flight(flight_id = 403, airline_id=13, submit_time=0, priority=6, duration=3)
+    
+#     flight_scheduler.submit_flight(flight_id = 404, airline_id=14, submit_time=0, priority=5, duration=4)
+    
+    
+#     flight_scheduler.print_schedule(3, 9)
+#     flight_scheduler.reprioritize_flight(404, 1, 10)
+    
+    
+#     flight_scheduler.add_runways(1, 1)
+    
+#     flight_scheduler.submit_flight(405, 15, 2, 6, 2)
+    
+#     flight_scheduler.submit_flight(406, 16, 3, 7, 5)
+
+#     flight_scheduler.ground_hold(16, 16, 3)
+    
+#     flight_scheduler.cancel_flight(405, 3)
+    
+#     flight_scheduler.tick(4)
+    
+#     flight_scheduler.submit_flight(407, 17, 4, 6, 3)
+    
+#     flight_scheduler.reprioritize_flight(407, 4, 9)
+    
+#     flight_scheduler.submit_flight(408, 18, 4, 8, 2)
+    
+#     flight_scheduler.add_runways(1, 5)
+    
+#     flight_scheduler.print_active()
+    
+    
+#     flight_scheduler.tick(8)
+    
+#     flight_scheduler.print_schedule(6, 12)
